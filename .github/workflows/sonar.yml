@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+
+    environment {
+        SONARQUBE_SERVER = 'SonarQube'  // Name from Jenkins config
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/your-repo.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh './gradlew clean build'  // Use mvn clean package for Maven projects
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh './gradlew sonarqube'  // For Gradle projects
+                    // sh 'mvn sonar:sonar'  // For Maven projects
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    def qg = waitForQualityGate()
+                    if (qg.status != 'OK') {
+                        error "Pipeline failed due to Quality Gate failure: ${qg.status}"
+                    }
+                }
+            }
+        }
+    }
+}
